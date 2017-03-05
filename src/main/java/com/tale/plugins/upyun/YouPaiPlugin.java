@@ -1,4 +1,4 @@
-package com.tale.plugins;
+package com.tale.plugins.upyun;
 
 import com.UpYun;
 import com.blade.ioc.annotation.Inject;
@@ -72,7 +72,8 @@ public class YouPaiPlugin implements Interceptor {
             Map<String, FileItem> fileItemMap = request.fileItems();
             Collection<FileItem> fileItems = fileItemMap.values();
             try {
-                List<String> errorFiles = new ArrayList<>();
+                List<Attach> errorFiles = new ArrayList<>();
+                List<Attach> urls = new ArrayList<>();
                 fileItems.forEach(f -> {
                     String fname = f.fileName();
                     if (f.file().length() / 1024 <= TaleConst.MAX_FILE_SIZE) {
@@ -82,7 +83,8 @@ public class YouPaiPlugin implements Interceptor {
                             // 上传到又拍云
                             boolean result = upyun.writeFile(fkey, f.file(), true);
                             if (result) {
-                                attachService.save(fname, fkey, ftype, uid);
+                                Attach attach = attachService.save(fname, fkey, ftype, uid);
+                                urls.add(attach);
                             } else {
                                 LOGGER.warn("上传文件 [{}] 失败", f.fileName());
                             }
@@ -91,14 +93,26 @@ public class YouPaiPlugin implements Interceptor {
                             e.printStackTrace();
                         }
                     } else {
-                        errorFiles.add(fname);
+                        errorFiles.add(new Attach(fname));
                     }
                     siteService.cleanCache(Types.C_STATISTICS);
                 });
-                response.json(RestResponse.ok(errorFiles));
+                if(errorFiles.size() > 0){
+                    RestResponse restResponse = new RestResponse();
+                    restResponse.setSuccess(false);
+                    restResponse.setPayload(errorFiles);
+                    response.json(restResponse);
+                    return false;
+                }
+                response.json(RestResponse.ok(urls));
             } catch (Exception e) {
-                LOGGER.error("又拍云上传失败", e);
-                response.json(RestResponse.fail());
+                String msg = "文件上传失败";
+                if(e instanceof TipException){
+                    msg = e.getMessage();
+                } else {
+                    LOGGER.error(msg, e);
+                }
+                response.json(RestResponse.fail(msg));
                 return false;
             }
             return false;

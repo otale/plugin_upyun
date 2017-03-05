@@ -1,4 +1,4 @@
-package com.tale.plugins;
+package com.tale.plugins.upyun;
 
 import com.blade.annotation.Order;
 import com.blade.config.BConfig;

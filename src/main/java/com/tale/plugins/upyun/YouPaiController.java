@@ -1,4 +1,4 @@
-package com.tale.plugins;
+package com.tale.plugins.upyun;
 
 import com.UpYun;
 import com.blade.ioc.annotation.Inject;
